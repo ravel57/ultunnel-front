@@ -1,9 +1,9 @@
 <template>
-  <div class="flex">
+  <div class="flex" style="font-size: 18px;font-weight: 550;">
     <img src="../../public/svg/server.svg" alt="server"/>
     <span style="margin-left: 8px">{{ this.server.name }}</span>
   </div>
-  <div class="flex" style="margin-top: 12px">
+  <div class="flex" style="margin-top: 12px;gap: 16px">
     <div v-for="protocol in this.server.proxies" :key="protocol.type">
       <ProxyCard
           :protocol="protocol"
@@ -18,7 +18,6 @@
 import ProxyCard from "./ProxyCard.vue";
 import {ProxyServer} from "../models/ProxyServer";
 import {PropType} from "vue";
-import {ProxyProtocol} from "../models/ProxyProtocol";
 import {User} from "../models/User";
 
 export default {
