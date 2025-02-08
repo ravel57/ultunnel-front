@@ -1,36 +1,46 @@
 <template>
-    <img
-        src="../assets/server.svg"
-        alt="server"
-    />
-    <span>{{ this.server.name }}</span>
-    <div v-for="protocol in this.server.protocols">
-      <ProxyCard/>
+  <div class="flex">
+    <img src="../../public/svg/server.svg" alt="server"/>
+    <span style="margin-left: 8px">{{ this.server.name }}</span>
+  </div>
+  <div class="flex" style="margin-top: 12px">
+    <div v-for="protocol in this.server.proxies" :key="protocol.type">
+      <ProxyCard
+          :protocol="protocol"
+          :server="this.server"
+          :user="this.user"
+      />
     </div>
+  </div>
 </template>
 
-<script>
-
-import {defineComponent} from "vue";
+<script lang="ts">
 import ProxyCard from "./ProxyCard.vue";
+import {ProxyServer} from "../models/ProxyServer";
+import {PropType} from "vue";
+import {ProxyProtocol} from "../models/ProxyProtocol";
+import {User} from "../models/User";
 
-export default defineComponent({
+export default {
 
-  name: "ProxyServer",
+  name: "ProxyServerView",
 
-  props: {},
+  components: {ProxyCard},
 
-  data: () => ({
-    cards: [],
-    server: ProxyServer,
-  }),
+  props: {
+    server: {
+      type: Object as PropType<ProxyServer>,
+      required: true
+    },
+    user: {
+      type: Object as PropType<User>,
+      required: true
+    }
+  }
 
-  components: {
-    ProxyCard
-  },
-
-})
+};
 </script>
+
 
 <style scoped>
 
