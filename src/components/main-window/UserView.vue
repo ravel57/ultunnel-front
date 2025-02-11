@@ -10,7 +10,7 @@
 	<div class="user-info">
 		<div class="user-info-section">
 			<img
-					src="../../public/svg/calendar.svg"
+					src="../../../public/svg/calendar.svg"
 					alt=""
 					width="20px"
 					height="20px"
@@ -19,7 +19,7 @@
 		</div>
 		<div @click="this.updatePaymentDate" class="user-info-section-next-payment-date">
 			<img
-					src="../../public/svg/payment.svg"
+					src="../../../public/svg/payment.svg"
 					alt=""
 					width="20px"
 					height="20px"
@@ -29,7 +29,7 @@
 		</div>
 		<div class="user-info-section-secret-key">
 			<img
-					src="../../public/svg/key.svg"
+					src="../../../public/svg/key.svg"
 					alt=""
 					width="20px"
 					height="20px"
@@ -49,8 +49,8 @@
 
 <script lang="ts">
 import ProxyServerView from "./ProxyServerView.vue";
-import {ProxyServer} from "../models/ProxyServer";
-import {User} from "../models/User";
+import {ProxyServer} from "../../models/ProxyServer";
+import {User} from "../../models/User";
 import {PropType} from "vue";
 
 export default {

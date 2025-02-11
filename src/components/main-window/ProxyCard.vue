@@ -59,11 +59,11 @@
 
 <script lang="ts">
 
-import {ProxyProtocol} from "../models/ProxyProtocol";
-import {ProxyServer} from "../models/ProxyServer";
-import {User} from "../models/User";
+import {ProxyProtocol} from "../../models/ProxyProtocol";
+import {ProxyServer} from "../../models/ProxyServer";
+import {User} from "../../models/User";
 import axios from "axios";
-import {UserProxy} from "../models/UserProxy";
+import {UserProxy} from "../../models/UserProxy";
 
 export default {
 	name: "ProxyCard",

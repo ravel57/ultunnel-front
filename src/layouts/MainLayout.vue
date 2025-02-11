@@ -13,9 +13,9 @@
 </template>
 
 <script>
-import UserView from "../components/UserView.vue";
+import UserView from "../components/main-window/UserView.vue";
 import {useStore} from "../store/index.ts";
-import HeaderRow from "../components/HeaderRow.vue";
+import HeaderRow from "../components/main-window/HeaderRow.vue";
 
 export default {
 	name: "MainLayout",

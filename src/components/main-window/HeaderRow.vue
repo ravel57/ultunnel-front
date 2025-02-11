@@ -212,8 +212,8 @@
 
 <script lang="ts">
 import axios from "axios";
-import {useStore} from "../store";
-import {ProxyType} from "../models/ProxyType";
+import {useStore} from "../../store";
+import {ProxyType} from "../../models/ProxyType";
 
 export default {
 	name: "Header",

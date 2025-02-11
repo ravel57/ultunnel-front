@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts">
-import UserView from "./components/UserView.vue";
+import UserView from "./components/main-window/UserView.vue";
 import MainLayout from "./layouts/MainLayout.vue"
 
 export default {
