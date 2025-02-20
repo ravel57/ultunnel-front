@@ -1,7 +1,6 @@
 <template>
 	<div class="user">
 		<span class="title">{{ user.name }}</span>
-		<!--		<q-toggle v-model="user.isEnabled"/>-->
 		<div class="toggle-container" @click="toggle(user)">
 			<div class="toggle-option" :class="{ active: !user.isEnabled }">Выкл</div>
 			<div class="toggle-option" :class="{ active: user.isEnabled }">Вкл</div>
@@ -83,15 +82,18 @@ export default {
 			const year = d.getFullYear()
 			return `${day}.${month}.${year}`
 		},
+
 		toggle(user: User) {
 			user.isEnabled = !user.isEnabled
 		},
+
 		updatePaymentDate() {
 			console.log("заглушка")
 		},
+
 		copySecretKey(user: User) {
 			navigator.clipboard.writeText(user.secretKey)
-		}
+		},
 	},
 
 }

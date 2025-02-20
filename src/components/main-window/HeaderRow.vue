@@ -188,6 +188,15 @@
 							dense
 							outlined
 							v-model="this.protocolPassword"
+							type="password"
+					/>
+				</div>
+				<div class="input-new-user-container">
+					<span class="label-for-new-user-creation">Порт протокола</span>
+					<q-input
+							dense
+							outlined
+							v-model="this.proxyPort"
 					/>
 				</div>
 				<div class="input-new-user-container">
@@ -216,7 +225,9 @@ import {useStore} from "../../store";
 import {ProxyType} from "../../models/ProxyType";
 
 export default {
+
 	name: "Header",
+
 	data: () => ({
 		isNewUserDialogOpened: false,
 		newUserName: "",
@@ -236,6 +247,7 @@ export default {
 		protocolLogin: "",
 		protocolPassword: "",
 		protocolType: "",
+		proxyPort: "",
 		protocolTypes: [
 			ProxyType.VLESS,
 			ProxyType.HYSTERIA2,
@@ -247,18 +259,38 @@ export default {
 	}),
 	methods: {
 		createNewUser() {
-			let user = {name: this.newUserName}
+			const user = {
+				name: this.newUserName
+			}
 			axios.post("/api/v1/add-new-user", user)
 			this.store.fetchData()
 			this.isNewUserDialogOpened = false
 		},
+
 		createNewServer() {
+			const data = {
+				name: this.newServerName,
+				host: this.newServerHost,
+			}
+			axios.post('/api/v1/add-new-server', data)
 			this.isNewServerDialogOpened = false
 		},
+
 		createNewProtocol() {
+			const data = {
+				useSubDomain: this.isSubdomain,
+				subdomain: this.protocolSubdomain,
+				login: this.protocolLogin,
+				password: this.protocolPassword,
+				type: this.protocolType,
+				proxyPort: this.proxyPort,
+			}
+			const proxyServerId = this.store.servers.filter(it => it.name === this.protocolServer)[0].id
+			axios.post(`/api/v1/add-proxy-to/${proxyServerId}`, data)
 			this.isNewProtocolDialogOpened = false
 		}
 	},
+
 	setup() {
 		return {
 			store: useStore()
