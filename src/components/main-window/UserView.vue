@@ -15,6 +15,13 @@
 					height="20px"
 			>
 			<span class="user-info-text">{{ formatDate(user.createdDate) }}</span>
+				<img
+						src="../../../public/svg/edit.svg"
+						alt=""
+						width="16px"
+						height="16px"
+						class="set-start-date"
+				>
 		</div>
 		<div @click="this.updatePaymentDate" class="user-info-section-next-payment-date">
 			<img
@@ -26,7 +33,7 @@
 			<span class="user-info-text">{{ formatDate(user.nextPaymentDate) }}</span>
 			<q-icon class="skip-to-next-year" name="skip_next" size="24px"/>
 		</div>
-		<div class="user-info-section-secret-key">
+		<div @click="this.copySecretKey(user)" class="user-info-section-secret-key">
 			<img
 					src="../../../public/svg/key.svg"
 					alt=""
@@ -34,7 +41,7 @@
 					height="20px"
 			>
 			<span class="user-info-text">{{ user.secretKey }}</span>
-			<q-icon @click="this.copySecretKey(user)" class="copy-secret-key-btn" name="content_copy" size="20px"/>
+			<q-icon class="copy-secret-key-btn" name="content_copy" size="20px"/>
 		</div>
 	</div>
 	<div v-for="server in servers" :key="server.id">
@@ -101,6 +108,10 @@ export default {
 
 
 <style scoped>
+.set-start-date {
+	display: none;
+}
+
 .skip-to-next-year {
 	display: none;
 }
@@ -111,10 +122,21 @@ export default {
 }
 
 .user-info-section {
+	cursor: pointer;
 	display: flex;
 	flex-direction: row;
 	gap: 8px;
 	width: 200px;
+}
+
+.user-info-section:hover {
+	.user-info-text {
+		color: #303030;
+	}
+
+	.set-start-date {
+		display: unset;
+	}
 }
 
 .user-info-section-secret-key {
