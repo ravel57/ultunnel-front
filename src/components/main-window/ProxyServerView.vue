@@ -20,19 +20,6 @@
 			</div>
 		</q-card>
 	</q-expansion-item>
-<!--  <div class="flex" style="font-size: 18px;font-weight: 550;margin-top: 16px">-->
-<!--    <img src="../../../public/svg/server.svg" alt="server"/>-->
-<!--    <span style="margin-left: 8px">{{ this.server.name }}</span>-->
-<!--  </div>-->
-<!--  <div class="flex" style="margin-top: 12px;gap: 16px">-->
-<!--    <div v-for="protocol in this.server.proxies" :key="protocol.type">-->
-<!--      <ProxyCard-->
-<!--          :protocol="protocol"-->
-<!--          :server="this.server"-->
-<!--          :user="this.user"-->
-<!--      />-->
-<!--    </div>-->
-<!--  </div>-->
 </template>
 
 <script lang="ts">

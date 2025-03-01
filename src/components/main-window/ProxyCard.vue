@@ -28,9 +28,9 @@
 					<img width="24px" height="24px" src="/svg/qr.svg" alt="qr"/>
 					<span class="card-content-text">QR код</span>
 				</div>
-				<div @click.stop="copyLink('какая то строка')" class="link-container">
+				<div @click.stop="copyLink(this.getProtocolUrl)" class="link-container">
 					<img width="24px" height="24px" src="/svg/link.svg" alt="link"/>
-					<span class="card-content-text">-</span>
+					<span class="card-content-text">{{ this.getProtocolUrl }}</span>
 				</div>
 			</div>
 		</div>
@@ -69,7 +69,7 @@ export default {
 	name: "ProxyCard",
 
 	props: {
-		protocol: {} as ProxyProtocol,
+		protocol: ProxyProtocol,
 		user: User,
 		server: ProxyServer,
 	},
@@ -80,19 +80,22 @@ export default {
 
 	methods: {
 		addProtocolToUser() {
-			let data = {
-				"userId": this.user.id,
-				"type": this.protocol.type.name.toUpperCase(),
-				"proxyServerId": this.server.id
-			};
-			axios.post("/api/v1/add-proxy-to-user", data)
-					.then((response) => {
-						this.user.proxiesConfigs.push(response.data);
-					})
-					.catch((error) => {
-						console.log(error);
-					})
+			if (!this.isAdded) {
+				let data = {
+					"userId": this.user.id,
+					"type": this.protocol.type.name.toUpperCase(),
+					"proxyServerId": this.server.id
+				};
+				axios.post("/api/v1/add-proxy-to-user", data)
+						.then((response) => {
+							this.user.proxiesConfigs.push(response.data);
+						})
+						.catch((error) => {
+							console.log(error);
+						})
+			}
 		},
+
 		copyLink(value: string) {
 			navigator.clipboard.writeText(value)
 		}
@@ -105,6 +108,13 @@ export default {
 						userProxy.server.includes(this.server.host)
 			})
 		},
+
+		getProtocolUrl() {
+			return this.user.proxiesConfigs.filter((userProxy: UserProxy) => {
+				return userProxy.type.toUpperCase() === this.protocol.type.name &&
+						userProxy.server.includes(this.server.host)
+			})[0].url
+		}
 	},
 
 };
@@ -171,6 +181,7 @@ export default {
 .card-content-text {
 	text-overflow: ellipsis;
 	overflow: hidden;
+	text-wrap: nowrap;
 }
 
 .proxy-card {

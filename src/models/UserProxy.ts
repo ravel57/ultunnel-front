@@ -5,4 +5,5 @@ export class UserProxy {
     server_port: number
     uuid: string
     packet_encoding: string
+    url: string
 }
