@@ -110,10 +110,15 @@ export default {
 		},
 
 		getProtocolUrl() {
-			return this.user.proxiesConfigs.filter((userProxy: UserProxy) => {
+			let userProxies = this.user.proxiesConfigs.filter((userProxy: UserProxy) => {
 				return userProxy.type.toUpperCase() === this.protocol.type.name &&
 						userProxy.server.includes(this.server.host)
-			})[0].url
+			});
+			if (userProxies) {
+				return userProxies[0].url
+			} else {
+				return ""
+			}
 		}
 	},
 
