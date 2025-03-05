@@ -114,7 +114,7 @@ export default {
 				return userProxy.type.toUpperCase() === this.protocol.type.name &&
 						userProxy.server.includes(this.server.host)
 			});
-			if (userProxies) {
+			if (userProxies[0]) {
 				return userProxies[0].url
 			} else {
 				return ""
