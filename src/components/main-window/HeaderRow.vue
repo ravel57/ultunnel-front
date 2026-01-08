@@ -250,6 +250,7 @@ export default {
 		proxyPort: "",
 		protocolTypes: [
 			ProxyType.VLESS,
+            ProxyType.TROJAN,
 			ProxyType.HYSTERIA2,
 			ProxyType.SSH,
 			ProxyType.WIREGUARD,
