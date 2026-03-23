@@ -7,4 +7,5 @@ export const ProxyType: Record<string, ProxyTypeValue> = {
     SSH: {name: "SSH", img: "ssh.png"},
     WIREGUARD: {name: "WIREGUARD", img: "wireguard.png"},
     AMNEZIA_WG: {name: "AMNEZIA_WG", img: "amnezia-wg.png"},
+    NAIVE: {name: "NAIVE", img: "naive.png"},
 };
