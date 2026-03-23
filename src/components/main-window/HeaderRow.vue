@@ -1,25 +1,25 @@
 <template>
 	<div class="header-row">
 		<q-input
-				style="width: 100%"
-				dense
-				outlined
-				v-model="this.searchRequests"
+			style="width: 100%"
+			dense
+			outlined
+			v-model="this.searchRequests"
 		>
 			<template v-slot:append>
 				<q-icon name="search"/>
 			</template>
 		</q-input>
 		<q-btn
-				class="new-user-btn"
-				@click="isNewUserDialogOpened=true"
+			class="new-user-btn"
+			@click="isNewUserDialogOpened=true"
 		>
 			Добавить пользователя
 		</q-btn>
 		<q-btn
-				dense
-				flat
-				icon="menu"
+			dense
+			flat
+			icon="menu"
 		>
 			<q-menu style="border-radius: 8px" :offset="[130, 10]">
 				<q-list style="min-width: 100px">
@@ -49,9 +49,9 @@
 	<q-dialog v-model="this.isNewUserDialogOpened">
 		<q-card class="new-user-modal-card">
 			<q-icon
-					name="close"
-					class="close-new-user-modal"
-					@click="isNewUserDialogOpened = false"
+				name="close"
+				class="close-new-user-modal"
+				@click="isNewUserDialogOpened = false"
 			/>
 			<div class="new-user-header">
 				Новый пользователь
@@ -60,23 +60,23 @@
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Имя</span>
 					<q-input
-							dense
-							outlined
-							v-model="this.newUserName"
+						dense
+						outlined
+						v-model="this.newUserName"
 					/>
 				</div>
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Дата регистрации</span>
 					<q-input
-							dense
-							outlined
-							v-model="this.registerDate"
+						dense
+						outlined
+						v-model="this.registerDate"
 					/>
 				</div>
 			</div>
 			<q-btn
-					class="new-user-modal-create-btn"
-					@click="createNewUser"
+				class="new-user-modal-create-btn"
+				@click="createNewUser"
 			>
 				Создать
 			</q-btn>
@@ -86,9 +86,9 @@
 	<q-dialog v-model="this.isNewServerDialogOpened">
 		<q-card class="new-user-modal-card">
 			<q-icon
-					name="close"
-					class="close-new-user-modal"
-					@click="isNewServerDialogOpened = false"
+				name="close"
+				class="close-new-user-modal"
+				@click="isNewServerDialogOpened = false"
 			/>
 			<div class="new-user-header">
 				Новый сервер
@@ -97,23 +97,23 @@
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Название</span>
 					<q-input
-							dense
-							outlined
-							v-model="this.newServerName"
+						dense
+						outlined
+						v-model="this.newServerName"
 					/>
 				</div>
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Host</span>
 					<q-input
-							dense
-							outlined
-							v-model="this.newServerHost"
+						dense
+						outlined
+						v-model="this.newServerHost"
 					/>
 				</div>
 			</div>
 			<q-btn
-					class="new-user-modal-create-btn"
-					@click="createNewServer"
+				class="new-user-modal-create-btn"
+				@click="createNewServer"
 			>
 				Создать
 			</q-btn>
@@ -123,9 +123,9 @@
 	<q-dialog v-model="this.isNewProtocolDialogOpened">
 		<q-card class="new-user-modal-card">
 			<q-icon
-					name="close"
-					class="close-new-user-modal"
-					@click="isNewProtocolDialogOpened = false"
+				name="close"
+				class="close-new-user-modal"
+				@click="isNewProtocolDialogOpened = false"
 			/>
 			<div class="new-user-header">
 				Новый протокол
@@ -134,25 +134,25 @@
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Сревер</span>
 					<q-select
-							outlined
-							v-model="this.protocolServer"
-							label="Выберите тип"
-							:options="this.store.servers.map(it => it.name)"
+						outlined
+						v-model="this.protocolServer"
+						label="Выберите тип"
+						:options="this.store.servers.map(it => it.name)"
 					/>
 				</div>
 
 				<div class="toggle-container">
 					<div
-							class="toggle-button"
-							:class="{ active: isSubdomain === true }"
-							@click="isSubdomain = true"
+						class="toggle-button"
+						:class="{ active: isSubdomain === true }"
+						@click="isSubdomain = true"
 					>
 						Поддомен
 					</div>
 					<div
-							class="toggle-button"
-							:class="{ active: isSubdomain === false }"
-							@click="isSubdomain = false"
+						class="toggle-button"
+						:class="{ active: isSubdomain === false }"
+						@click="isSubdomain = false"
 					>
 						Порт
 					</div>
@@ -161,57 +161,70 @@
 				<div v-if="this.isSubdomain" class="input-new-user-container">
 					<span class="label-for-new-user-creation">Поддомен</span>
 					<q-input
-							dense
-							outlined
-							v-model="this.protocolSubdomain"
+						dense
+						outlined
+						v-model="this.protocolSubdomain"
 					/>
 				</div>
 				<div v-else class="input-new-user-container">
 					<span class="label-for-new-user-creation">Порт</span>
 					<q-input
-							dense
-							outlined
-							v-model="this.protocolPort"
+						dense
+						outlined
+						v-model="this.protocolPort"
 					/>
 				</div>
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Логин</span>
 					<q-input
-							dense
-							outlined
-							v-model="this.protocolLogin"
+						dense
+						outlined
+						v-model="this.protocolLogin"
 					/>
 				</div>
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Пароль</span>
 					<q-input
-							dense
-							outlined
-							v-model="this.protocolPassword"
-							type="password"
+						dense
+						outlined
+						v-model="this.protocolPassword"
+						type="password"
 					/>
 				</div>
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Порт протокола</span>
 					<q-input
-							dense
-							outlined
-							v-model="this.proxyPort"
+						dense
+						outlined
+						v-model="this.proxyPort"
+					/>
+				</div>
+				<q-checkbox
+					v-model="this.useServerIp"
+					label="Указать IP сервера"
+					dense
+				/>
+				<div v-if="this.useServerIp" class="input-new-user-container">
+					<span class="label-for-new-user-creation">IP сервера</span>
+					<q-input
+						dense
+						outlined
+						v-model="this.serverIp"
 					/>
 				</div>
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Тип</span>
 					<q-select
-							outlined
-							v-model="this.protocolType"
-							label="Выберите тип"
-							:options="this.protocolTypes.map(it => it.name)"
+						outlined
+						v-model="this.protocolType"
+						label="Выберите тип"
+						:options="this.protocolTypes.map(it => it.name)"
 					/>
 				</div>
 			</div>
 			<q-btn
-					class="new-user-modal-create-btn"
-					@click="createNewProtocol"
+				class="new-user-modal-create-btn"
+				@click="createNewProtocol"
 			>
 				Создать
 			</q-btn>
@@ -248,6 +261,8 @@ export default {
 		protocolPassword: "",
 		protocolType: "",
 		proxyPort: "",
+		useServerIp: false,
+		serverIp: "",
 		protocolTypes: [
 			ProxyType.VLESS,
 			ProxyType.TROJAN,
@@ -286,6 +301,7 @@ export default {
 				password: this.protocolPassword,
 				type: this.protocolType,
 				proxyPort: this.proxyPort,
+				serverIp: this.useServerIp ? this.serverIp : null,
 			}
 			const proxyServerId = this.store.servers.filter(it => it.name === this.protocolServer)[0].id
 			axios.post(`/api/v1/add-proxy-to/${proxyServerId}`, data)

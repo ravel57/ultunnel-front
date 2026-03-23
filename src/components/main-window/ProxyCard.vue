@@ -1,27 +1,27 @@
 <template>
 	<div class="flex">
 		<div
-				class="proxy-card cursor-pointer"
-				:class="this.isAdded ? 'added' : 'not-added'"
-				@click="addProtocolToUser"
+			class="proxy-card cursor-pointer"
+			:class="this.isAdded ? 'added' : 'not-added'"
+			@click="addProtocolToUser"
 		>
       <span
-					class="card-info"
-			>
+	      class="card-info"
+      >
         <img
-						:src="`/png/${protocol.type.img}`"
-						:alt="protocol.type.name"
-						height="24px"
-						width="24px"
-				>
+	        :src="`/png/${protocol.type.img}`"
+	        :alt="protocol.type.name"
+	        height="24px"
+	        width="24px"
+        >
         <span>{{ protocol.type.name }}</span>
         <img
-						:src="this.isAdded ? '/svg/check-mark.svg' : '/svg/plus.svg'"
-						:alt="this.isAdded ? 'check-mark' : 'plus'"
-						class="check-icon"
-						width="14px"
-						height="14px"
-				/>
+	        :src="this.isAdded ? '/svg/check-mark.svg' : '/svg/plus.svg'"
+	        :alt="this.isAdded ? 'check-mark' : 'plus'"
+	        class="check-icon"
+	        width="14px"
+	        height="14px"
+        />
       </span>
 			<div class="card-content">
 				<div @click.stop="this.isQrModalVisible = true" class="qr-container">
@@ -39,9 +39,9 @@
 	<q-dialog v-model="this.isQrModalVisible">
 		<q-card class="qr-modal-card">
 			<q-icon
-					name="close"
-					class="close-qr-modal"
-					@click="isQrModalVisible = false"
+				name="close"
+				class="close-qr-modal"
+				@click="isQrModalVisible = false"
 			/>
 			<div class="qr-modal-header">
 				QR код
@@ -87,12 +87,12 @@ export default {
 					"proxyServerId": this.server.id
 				};
 				axios.post("/api/v1/add-proxy-to-user", data)
-						.then((response) => {
-							this.user.proxiesConfigs.push(response.data);
-						})
-						.catch((error) => {
-							console.log(error);
-						})
+					.then((response) => {
+						this.user.proxiesConfigs.push(response.data);
+					})
+					.catch((error) => {
+						console.log(error);
+					})
 			}
 		},
 
@@ -104,15 +104,13 @@ export default {
 	computed: {
 		isAdded() {
 			return this.user.proxiesConfigs.some((userProxy: UserProxy) => {
-				return userProxy.type.toUpperCase() === this.protocol.type.name &&
-						userProxy.server.includes(this.server.host)
+				return userProxy.type.toUpperCase() === this.protocol.type.name && (userProxy.server.includes(this.server.host) || this.protocol.serverIp === userProxy.server)
 			})
 		},
 
 		getProtocolUrl() {
 			let userProxies = this.user.proxiesConfigs.filter((userProxy: UserProxy) => {
-				return userProxy.type.toUpperCase() === this.protocol.type.name &&
-						userProxy.server.includes(this.server.host)
+				return userProxy.type.toUpperCase() === this.protocol.type.name && userProxy.server.includes(this.server.host)
 			});
 			if (userProxies[0]) {
 				return userProxies[0].url
