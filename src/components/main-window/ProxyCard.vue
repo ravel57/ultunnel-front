@@ -96,31 +96,38 @@ export default defineComponent({
 	},
 
 	methods: {
-		getConfigProtocolType(userProxy: UserProxy): string {
-			const proxyType = userProxy?.proxy?.type as unknown;
-
-			// Backend обычно сериализует ProxyType как строку, например "TROJAN2".
-			if (typeof proxyType === "string") {
-				return proxyType.toUpperCase();
+		normalizeType(value: unknown): string {
+			if (typeof value === "string") {
+				return value.trim().toUpperCase();
 			}
 
-			// Если type пришёл как frontend-объект ProxyTypeValue.
-			if (
-				typeof proxyType === "object" &&
-				proxyType !== null &&
-				"name" in proxyType
-			) {
-				const name = (proxyType as {name?: string}).name;
-				return name?.toUpperCase() ?? "";
+			if (typeof value === "object" && value !== null && "name" in value) {
+				const name = (value as {name?: unknown}).name;
+				return typeof name === "string" ? name.trim().toUpperCase() : "";
 			}
 
 			return "";
 		},
 
+		getConfigProtocolType(userProxy: UserProxy): string {
+			// New API shape: proxy.type. Old API shape: type on the config itself.
+			return (
+				this.normalizeType(userProxy?.proxy?.type) ||
+				this.normalizeType(userProxy?.type)
+			);
+		},
+
 		matchesServer(userProxy: UserProxy): boolean {
-			const configServer = userProxy?.server ?? "";
-			const host = this.server?.host ?? "";
-			const serverIp = this.protocol?.serverIp ?? "";
+			// Backend may legally return null here. Never call .includes on it directly.
+			const configServer = typeof userProxy?.server === "string"
+				? userProxy.server
+				: "";
+			const host = typeof this.server?.host === "string"
+				? this.server.host
+				: "";
+			const serverIp = typeof this.protocol?.serverIp === "string"
+				? this.protocol.serverIp
+				: "";
 
 			return (
 				(host !== "" && configServer.includes(host)) ||
@@ -132,28 +139,23 @@ export default defineComponent({
 			const protocolId = this.protocol?.id;
 			const configProtocolId = userProxy?.proxy?.id;
 
-			// Основной и самый точный вариант: сравниваем конкретные Proxy по id.
+			// Most reliable match when the backend provides the nested proxy id.
 			if (protocolId != null && configProtocolId != null) {
 				return String(protocolId) === String(configProtocolId);
 			}
 
-			const protocolName = this.protocol?.type?.name?.toUpperCase() ?? "";
-			const configProxyType = this.getConfigProtocolType(userProxy);
+			const protocolName = this.normalizeType(this.protocol?.type);
+			const configProxyType = this.normalizeType(userProxy?.proxy?.type);
 
-			// Если backend прислал proxy.type, можно отличить TROJAN от TROJAN2.
 			if (protocolName !== "" && configProxyType !== "") {
-				return (
-					protocolName === configProxyType &&
-					this.matchesServer(userProxy)
-				);
+				return protocolName === configProxyType && this.matchesServer(userProxy);
 			}
 
-			// Совместимость со старыми записями, где поля proxy ещё нет.
-			// TROJAN2 является внутренним типом панели, но конфиг sing-box имеет type=trojan.
+			// Compatibility with old records. TROJAN2 is represented as trojan in sing-box.
 			const expectedConfigType = protocolName === "TROJAN2"
 				? "TROJAN"
 				: protocolName;
-			const configType = userProxy?.type?.toUpperCase() ?? "";
+			const configType = this.normalizeType(userProxy?.type);
 
 			return (
 				expectedConfigType !== "" &&
@@ -167,9 +169,15 @@ export default defineComponent({
 				return;
 			}
 
+			const protocolType = this.normalizeType(this.protocol?.type);
+			if (!protocolType) {
+				console.error("Не удалось добавить прокси: у протокола отсутствует type", this.protocol);
+				return;
+			}
+
 			const data = {
 				userId: this.user.id,
-				type: this.protocol.type.name.toUpperCase(),
+				type: protocolType,
 				proxyServerId: this.server.id,
 			};
 
@@ -179,15 +187,21 @@ export default defineComponent({
 					data,
 				);
 
-				const newConfig = response.data;
+				const newConfig = (
+					response.data && typeof response.data === "object"
+						? response.data
+						: {}
+				) as UserProxy;
 
-				// Даже если backend не вернул вложенный proxy, сохраняем его локально,
-				// чтобы карточка сразу стала активной без перезагрузки страницы.
+				// Make UI state deterministic even if backend returns only the config fields.
 				if (!newConfig.proxy) {
-					newConfig.proxy = this.protocol;
+					newConfig.proxy = {
+						id: this.protocol.id,
+						type: this.protocol.type,
+					};
 				}
 
-				if (!this.user.proxiesConfigs) {
+				if (!Array.isArray(this.user.proxiesConfigs)) {
 					this.user.proxiesConfigs = [];
 				}
 
@@ -212,7 +226,11 @@ export default defineComponent({
 
 	computed: {
 		matchedUserProxy(): UserProxy | undefined {
-			return (this.user?.proxiesConfigs ?? []).find(
+			const configs = Array.isArray(this.user?.proxiesConfigs)
+				? this.user.proxiesConfigs
+				: [];
+
+			return configs.find(
 				(userProxy: UserProxy) => this.matchesProtocol(userProxy),
 			);
 		},
@@ -222,7 +240,8 @@ export default defineComponent({
 		},
 
 		getProtocolUrl(): string {
-			return this.matchedUserProxy?.url ?? "";
+			const url = this.matchedUserProxy?.url;
+			return typeof url === "string" ? url : "";
 		},
 	},
 });
