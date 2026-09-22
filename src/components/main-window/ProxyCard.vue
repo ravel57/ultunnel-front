@@ -2,7 +2,10 @@
 	<div class="flex">
 		<div
 			class="proxy-card cursor-pointer"
-			:class="isAdded ? 'added' : 'not-added'"
+			:class="[
+				isAdded ? 'added' : 'not-added',
+				{ busy: isAdding || isRemoving },
+			]"
 			@click="addProtocolToUser"
 		>
 			<span class="card-info">
@@ -13,12 +16,31 @@
 					width="24px"
 				>
 				<span>{{ protocol.type.name }}</span>
+				<q-spinner
+					v-if="isAdding"
+					class="check-icon"
+					size="24px"
+				/>
 				<img
+					v-else
 					:src="isAdded ? '/svg/check-mark.svg' : '/svg/plus.svg'"
 					:alt="isAdded ? 'check-mark' : 'plus'"
 					class="check-icon"
-					width="14px"
-					height="14px"
+					width="24px"
+					height="24px"
+				/>
+
+				<q-btn
+					v-if="isAdded"
+					class="remove-user-protocol-btn"
+					flat
+					round
+					dense
+					icon="delete_outline"
+					color="negative"
+					:loading="isRemoving"
+					:disable="isAdding || isRemoving"
+					@click.stop="removeProtocolFromUser"
 				/>
 			</span>
 
@@ -70,6 +92,7 @@ import {ProxyProtocol} from "../../models/ProxyProtocol";
 import {ProxyServer} from "../../models/ProxyServer";
 import {User} from "../../models/User";
 import {UserProxy} from "../../models/UserProxy";
+import {deleteProtocolFromUser} from "../../api/adminApi";
 
 export default defineComponent({
 	name: "ProxyCard",
@@ -92,6 +115,8 @@ export default defineComponent({
 	data() {
 		return {
 			isQrModalVisible: false,
+			isAdding: false,
+			isRemoving: false,
 		};
 	},
 
@@ -165,7 +190,7 @@ export default defineComponent({
 		},
 
 		async addProtocolToUser(): Promise<void> {
-			if (this.isAdded) {
+			if (this.isAdded || this.isAdding || this.isRemoving) {
 				return;
 			}
 
@@ -181,6 +206,7 @@ export default defineComponent({
 				proxyServerId: this.server.id,
 			};
 
+			this.isAdding = true;
 			try {
 				const response = await axios.post<UserProxy>(
 					"/api/v1/add-proxy-to-user",
@@ -208,6 +234,42 @@ export default defineComponent({
 				this.user.proxiesConfigs.push(newConfig);
 			} catch (error) {
 				console.error("Не удалось добавить прокси пользователю", error);
+			} finally {
+				this.isAdding = false;
+			}
+		},
+
+		async removeProtocolFromUser(): Promise<void> {
+			if (!this.isAdded || this.isAdding || this.isRemoving) {
+				return;
+			}
+
+			const matched = this.matchedUserProxy;
+			if (!matched) return;
+
+			if (!window.confirm(`Удалить ${this.protocol.type.name} у пользователя «${this.user.name}»?`)) {
+				return;
+			}
+
+			this.isRemoving = true;
+			try {
+				await deleteProtocolFromUser(
+					this.user.id,
+					this.server.id,
+					this.normalizeType(this.protocol?.type),
+					matched.id,
+				);
+
+				const index = (this.user.proxiesConfigs ?? []).findIndex(
+					(userProxy: UserProxy) => userProxy === matched,
+				);
+				if (index >= 0) {
+					this.user.proxiesConfigs.splice(index, 1);
+				}
+			} catch (error) {
+				console.error("Не удалось удалить прокси у пользователя", error);
+			} finally {
+				this.isRemoving = false;
 			}
 		},
 
@@ -332,6 +394,10 @@ export default defineComponent({
 	box-shadow: 3px 3px 10px #acacac;
 }
 
+.proxy-card.busy {
+	pointer-events: none;
+}
+
 .card-info {
 	display: flex;
 	align-items: stretch;
@@ -344,6 +410,13 @@ export default defineComponent({
 	right: 8px;
 	width: 24px;
 	height: 24px;
+}
+
+.remove-user-protocol-btn {
+	position: absolute;
+	top: 36px;
+	right: 4px;
+	z-index: 2;
 }
 
 .added {

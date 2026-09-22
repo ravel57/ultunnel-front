@@ -6,6 +6,7 @@ export interface UserProxySource {
 }
 
 export class UserProxy {
+	id?: number
 	type?: string | null
 	tag?: string | null
 	server?: string | null
