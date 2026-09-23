@@ -37,6 +37,12 @@
 							Добавить протокол
 						</q-item-section>
 					</q-item>
+					<q-item clickable v-close-popup>
+						<q-item-section @click="openBulkDialog" class="menu-item-container">
+							<q-icon size="18px" name="groups"/>
+							Массовые действия
+						</q-item-section>
+					</q-item>
 					<q-item clickable v-close-popup @click="isServerManagerDialogOpened = true">
 						<q-item-section class="menu-item-container">
 							<q-icon size="18px" name="dns"/>
@@ -179,6 +185,98 @@
 			</q-btn>
 		</q-card>
 	</q-dialog>
+	<q-dialog v-model="this.isBulkDialogOpened">
+		<q-card class="new-user-modal-card">
+			<q-icon
+				name="close"
+				class="close-new-user-modal"
+				@click="isBulkDialogOpened = false"
+			/>
+			<div class="new-user-header">
+				Массовые действия
+			</div>
+			<div class="new-user-inputs">
+				<div class="input-new-user-container">
+					<span class="label-for-new-user-creation">Сервер</span>
+					<q-select
+						outlined
+						v-model="this.bulkServer"
+						label="Выберите сервер"
+						:options="this.store.servers.map(it => it.name)"
+					/>
+				</div>
+				<div class="input-new-user-container">
+					<span class="label-for-new-user-creation">Протокол</span>
+					<q-select
+						outlined
+						v-model="this.bulkType"
+						label="Выберите протокол"
+						:options="this.bulkTypeOptions"
+						:disable="this.bulkTypeOptions.length === 0"
+					/>
+				</div>
+				<div v-if="this.bulkError" class="bulk-error">
+					{{ this.bulkError }}
+				</div>
+				<div v-if="this.bulkResult" class="bulk-result">
+					<div>Всего пользователей: {{ this.bulkResult.total }}</div>
+					<div>Изменено: {{ this.bulkResult.affected }}</div>
+					<div>Пропущено: {{ this.bulkResult.skipped }}</div>
+					<div>Ошибок: {{ this.bulkResult.failed }}</div>
+					<div v-if="this.bulkResult.configsRemoved != null">
+						Удалено конфигов: {{ this.bulkResult.configsRemoved }}
+					</div>
+					<div
+						v-for="(error, index) in this.bulkResult.errors"
+						:key="index"
+						class="bulk-error"
+					>
+						{{ error.userName || error.userId }}: {{ error.message }}
+					</div>
+				</div>
+			</div>
+			<q-btn
+				class="new-user-modal-create-btn"
+				:loading="this.bulkLoading"
+				@click="addProtocolToAllUsers"
+			>
+				Добавить всем
+			</q-btn>
+			<q-btn
+				class="bulk-delete-btn"
+				:loading="this.bulkLoading"
+				@click="confirmBulkDelete"
+			>
+				Удалить у всех
+			</q-btn>
+		</q-card>
+	</q-dialog>
+
+	<q-dialog v-model="this.isBulkDeleteConfirmOpened">
+		<q-card class="new-user-modal-card">
+			<div class="new-user-header">
+				Удалить у всех?
+			</div>
+			<div class="bulk-confirm-text">
+				Протокол {{ this.bulkType || "—" }} будет удалён у всех пользователей сервера
+				{{ this.bulkServer || "—" }}. Действие необратимо.
+			</div>
+			<q-btn
+				class="bulk-delete-btn"
+				:loading="this.bulkLoading"
+				@click="deleteProtocolFromAllUsers"
+			>
+				Удалить
+			</q-btn>
+			<q-btn
+				class="bulk-cancel-btn"
+				flat
+				@click="isBulkDeleteConfirmOpened = false"
+			>
+				Отмена
+			</q-btn>
+		</q-card>
+	</q-dialog>
 
 	<q-dialog v-model="isServerManagerDialogOpened">
 		<q-card class="server-manager-card">
@@ -281,6 +379,13 @@ export default {
 		proxyPort: "",
 		useServerIp: false,
 		serverIp: "",
+		isBulkDialogOpened: false,
+		isBulkDeleteConfirmOpened: false,
+		bulkServer: "",
+		bulkType: "",
+		bulkLoading: false,
+		bulkResult: null,
+		bulkError: "",
 		isCreatingProtocol: false,
 		protocolTypes: [
 			ProxyType.VLESS,
@@ -439,6 +544,98 @@ export default {
 				this.deletingProtocolId = null
 			}
 		},
+
+		openBulkDialog() {
+			this.bulkResult = null
+			this.bulkError = ""
+			this.isBulkDialogOpened = true
+		},
+
+		addProtocolToAllUsers() {
+			this.sendBulkAction(true)
+		},
+
+		confirmBulkDelete() {
+			if (!this.bulkServerObject || !this.bulkType) {
+				this.bulkResult = null
+				this.bulkError = "Выберите сервер и протокол"
+				return
+			}
+
+			this.bulkError = ""
+			this.isBulkDeleteConfirmOpened = true
+		},
+
+		deleteProtocolFromAllUsers() {
+			this.isBulkDeleteConfirmOpened = false
+			this.sendBulkAction(false)
+		},
+
+		async sendBulkAction(isAdd: boolean): Promise<void> {
+			const server = this.bulkServerObject
+			if (!server || !this.bulkType) {
+				this.bulkResult = null
+				this.bulkError = "Выберите сервер и протокол"
+				return
+			}
+
+			const data = {
+				type: this.bulkType,
+				proxyServerId: server.id,
+			}
+
+			this.bulkLoading = true
+			this.bulkError = ""
+			this.bulkResult = null
+
+			try {
+				const response = isAdd
+					? await axios.post("/api/v1/add-proxy-to-all-users", data)
+					: await axios.delete("/api/v1/delete-proxy-from-all-users", {
+						data,
+						headers: {"Content-Type": "application/json"},
+					})
+
+				this.bulkResult = response.data
+				this.store.fetchData()
+			} catch (error) {
+				console.error("Не удалось выполнить массовое действие", error)
+				this.bulkError = error?.response?.data?.message
+					|| error?.message
+					|| "Не удалось выполнить массовое действие"
+			} finally {
+				this.bulkLoading = false
+			}
+		},
+	},
+
+	computed: {
+		bulkServerObject() {
+			return this.store.servers.find(it => it.name === this.bulkServer) ?? null
+		},
+
+		bulkTypeOptions(): string[] {
+			const proxies = Array.isArray(this.bulkServerObject?.proxies)
+				? this.bulkServerObject.proxies
+				: []
+
+			return [...new Set(
+				proxies
+					.map(proxy => proxy?.type?.name)
+					.filter((name): name is string => typeof name === "string" && name !== ""),
+			)]
+		},
+	},
+
+	watch: {
+		bulkServer() {
+			// Protocols differ per server: drop a selection the new server does not have.
+			if (!this.bulkTypeOptions.includes(this.bulkType)) {
+				this.bulkType = ""
+			}
+			this.bulkResult = null
+			this.bulkError = ""
+		},
 	},
 
 	setup() {
@@ -534,6 +731,38 @@ export default {
 	color: #777;
 	position: relative;
 	z-index: 1;
+}
+
+.bulk-delete-btn {
+	color: white;
+	background-color: #c62828;
+	width: 100%;
+	border-radius: 8px;
+	margin-top: 12px;
+}
+
+.bulk-cancel-btn {
+	width: 100%;
+	border-radius: 8px;
+	margin-top: 8px;
+}
+
+.bulk-confirm-text {
+	font-size: 16px;
+	color: #555;
+}
+
+.bulk-error {
+	font-size: 14px;
+	color: #c62828;
+}
+
+.bulk-result {
+	font-size: 14px;
+	color: #555;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .toggle-button.active {
