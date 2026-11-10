@@ -58,7 +58,7 @@
 					@click.stop="copyLink(getProtocolUrl)"
 				>
 					<img width="24px" height="24px" src="/svg/link.svg" alt="link"/>
-					<span class="card-content-text">{{ getProtocolUrl }}</span>
+					<span class="card-content-text">{{ getProtocolUrl || (protocol.type.name === "MASQUE" ? "Доступен в конфигурации sing-box" : "") }}</span>
 				</div>
 			</div>
 		</div>
@@ -146,7 +146,7 @@ export default defineComponent({
 			// Backend may legally return null here. Never call .includes on it directly.
 			const configServer = typeof userProxy?.server === "string"
 				? userProxy.server
-				: "";
+				: userProxy?.peers?.find(peer => typeof peer.address === "string")?.address ?? "";
 			const host = typeof this.server?.host === "string"
 				? this.server.host
 				: "";

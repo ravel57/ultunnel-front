@@ -100,11 +100,43 @@
 					<span class="label-for-new-user-creation">Host</span>
 					<q-input dense outlined v-model="newServerHost"/>
 				</div>
+				<div class="toggle-container">
+					<div class="toggle-button" :class="{ active: newServerUseSubdomain === true }" @click="newServerUseSubdomain = true">
+						Поддомен
+					</div>
+					<div class="toggle-button" :class="{ active: newServerUseSubdomain === false }" @click="newServerUseSubdomain = false">
+						Порт
+					</div>
+				</div>
+
+				<div v-if="newServerUseSubdomain" class="input-new-user-container">
+					<span class="label-for-new-user-creation">Поддомен</span>
+					<q-input dense outlined v-model="newServerSubdomain"/>
+				</div>
+				<div v-else class="input-new-user-container">
+					<span class="label-for-new-user-creation">Порт</span>
+					<q-input dense outlined v-model="newServerPort"/>
+				</div>
+				<div class="input-new-user-container">
+					<span class="label-for-new-user-creation">Логин</span>
+					<q-input dense outlined v-model="newServerLogin"/>
+				</div>
+				<div class="input-new-user-container">
+					<span class="label-for-new-user-creation">Пароль</span>
+					<q-input dense outlined v-model="newServerPassword" type="password"/>
+				</div>
+				<q-checkbox v-model="newServerUseIp" label="Указать IP сервера" dense/>
+				<div v-if="newServerUseIp" class="input-new-user-container">
+					<span class="label-for-new-user-creation">IP сервера</span>
+					<q-input dense outlined v-model="newServerIp"/>
+				</div>
+
 			</div>
+            <div v-if="serverFormError" class="text-negative" role="alert">{{ serverFormError }}</div>
 			<q-btn
 				class="new-user-modal-create-btn"
 				:loading="isCreatingServer"
-				:disable="!newServerName.trim() || !newServerHost.trim()"
+				:disable="!newServerName.trim() || !newServerHost.trim() || !newServerLogin.trim() || !newServerPassword || (newServerUseSubdomain ? !newServerSubdomain.trim() : !newServerPort)"
 				@click="createNewServer"
 			>
 				Создать
@@ -127,28 +159,17 @@
 						outlined
 						v-model="protocolServer"
 						label="Выберите сервер"
-						:options="store.servers.map(it => it.name)"
+						:options="store.servers.map(it => ({label: it.name, value: String(it.id)}))"
+                        emit-value map-options
 					/>
 				</div>
 
-				<div class="toggle-container">
-					<div class="toggle-button" :class="{ active: isSubdomain === true }" @click="isSubdomain = true">
-						Поддомен
-					</div>
-					<div class="toggle-button" :class="{ active: isSubdomain === false }" @click="isSubdomain = false">
-						Порт
-					</div>
-				</div>
-
-				<div v-if="isSubdomain" class="input-new-user-container">
-					<span class="label-for-new-user-creation">Поддомен</span>
-					<q-input dense outlined v-model="protocolSubdomain"/>
-				</div>
-				<div v-else class="input-new-user-container">
-					<span class="label-for-new-user-creation">Порт</span>
-					<q-input dense outlined v-model="protocolPort"/>
-				</div>
-				<div class="input-new-user-container">
+                <template v-if="protocolType === 'SSH'">
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Порт SSH</span>
+                    <q-input dense outlined v-model="protocolPort" type="number"/>
+                </div>
+                <div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Логин</span>
 					<q-input dense outlined v-model="protocolLogin"/>
 				</div>
@@ -165,20 +186,22 @@
 					<span class="label-for-new-user-creation">IP сервера</span>
 					<q-input dense outlined v-model="serverIp"/>
 				</div>
+                </template>
 				<div class="input-new-user-container">
 					<span class="label-for-new-user-creation">Тип</span>
 					<q-select
 						outlined
 						v-model="protocolType"
 						label="Выберите тип"
-						:options="protocolTypes.map(it => it.name)"
+						:options="availableProtocolTypes.map(it => it.name)"
 					/>
 				</div>
 			</div>
+            <div v-if="protocolFormError" class="text-negative" role="alert">{{ protocolFormError }}</div>
 			<q-btn
 				class="new-user-modal-create-btn"
 				:loading="isCreatingProtocol"
-				:disable="!protocolServer || !protocolType"
+				:disable="!protocolServer || !availableProtocolTypes.some(it => it.name === protocolType)"
 				@click="createNewProtocol"
 			>
 				Создать
@@ -298,6 +321,11 @@
 							<strong>{{ server.name }}</strong>
 							<span>{{ server.host }}</span>
 						</div>
+                        <q-btn flat round dense icon="edit" aria-label="Изменить параметры сервера"
+                            :disable="deletingServerId !== null || deletingProtocolId !== null || isSavingServer"
+                            @click="openServerEditor(server)">
+                            <q-tooltip>Параметры сервера</q-tooltip>
+                        </q-btn>
 						<q-btn
 							flat
 							round
@@ -341,6 +369,42 @@
 			</div>
 		</q-card>
 	</q-dialog>
+    <q-dialog v-model="isServerEditorOpened" :persistent="isSavingServer">
+        <q-card class="new-user-modal-card">
+            <div class="new-user-header">Параметры сервера</div>
+            <div>{{ editingServerName }}</div>
+            <div class="new-user-inputs">
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Логин панели</span>
+                    <q-input dense outlined v-model="editServerLogin" autocomplete="username" :disable="isSavingServer"/>
+                </div>
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Новый пароль панели</span>
+                    <q-input dense outlined v-model="editServerPassword" type="password" autocomplete="new-password"
+                        placeholder="Оставьте пустым, чтобы сохранить текущий" :disable="isSavingServer"/>
+                </div>
+                <q-toggle v-model="editServerUseSubdomain" label="Подключение через поддомен" :disable="isSavingServer"/>
+                <div v-if="editServerUseSubdomain" class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Поддомен панели</span>
+                    <q-input dense outlined v-model="editServerSubdomain" :disable="isSavingServer"/>
+                </div>
+                <div v-else class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Порт панели</span>
+                    <q-input dense outlined v-model="editServerPort" type="number" min="1" max="65535" :disable="isSavingServer"/>
+                </div>
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">IP сервера</span>
+                    <q-input dense outlined v-model="editServerIp" placeholder="Пусто — использовать Host сервера" :disable="isSavingServer"/>
+                </div>
+            </div>
+            <div v-if="serverEditorError" class="text-negative" role="alert">{{ serverEditorError }}</div>
+            <q-btn class="new-user-modal-create-btn" label="Сохранить" :loading="isSavingServer"
+                :disable="!editServerLogin.trim() || (editServerUseSubdomain ? !editServerSubdomain.trim() : !(Number(editServerPort) >= 1 && Number(editServerPort) <= 65535))"
+                @click="saveServerSettings"/>
+            <q-btn flat label="Отмена" :disable="isSavingServer" @click="isServerEditorOpened = false"/>
+        </q-card>
+    </q-dialog>
+
 </template>
 
 <script lang="ts">
@@ -348,6 +412,7 @@ import axios from "axios";
 import {nextTick} from "vue";
 import {useStore} from "../../store";
 import {ProxyType} from "../../models/ProxyType";
+import type {ProxyTypeValue} from "../../models/ProxyTypeValue";
 import {ProxyServer} from "../../models/ProxyServer";
 import {ProxyProtocol} from "../../models/ProxyProtocol";
 import {deleteProtocol, deleteServer} from "../../api/adminApi";
@@ -363,9 +428,29 @@ export default {
 		isCreatingUser: false,
 		createdUserId: null as number | null,
 
+        isServerEditorOpened: false,
+        isSavingServer: false,
+        editingServerId: null as number | null,
+        editingServerName: "",
+        editServerLogin: "",
+        editServerPassword: "",
+        editServerUseSubdomain: true,
+        editServerSubdomain: "",
+        editServerPort: "",
+        editServerIp: "",
+        serverEditorError: "",
 		isNewServerDialogOpened: false,
 		newServerName: "",
 		newServerHost: "",
+        newServerLogin: "",
+        newServerPassword: "",
+        newServerUseSubdomain: true,
+        newServerSubdomain: "",
+        newServerPort: "",
+        newServerUseIp: false,
+        newServerIp: "",
+        serverFormError: "",
+        protocolFormError: "",
 		isCreatingServer: false,
 
 		isNewProtocolDialogOpened: false,
@@ -391,6 +476,11 @@ export default {
 			ProxyType.VLESS,
 			ProxyType.TROJAN,
 			ProxyType.HYSTERIA2,
+			ProxyType.TUIC,
+			ProxyType.MASQUE,
+			ProxyType.ANYTLS,
+			ProxyType.SHADOWTLS,
+			ProxyType.TRUSTTUNNEL,
 			ProxyType.SSH,
 			ProxyType.WIREGUARD,
 			ProxyType.AMNEZIA_WG,
@@ -403,6 +493,44 @@ export default {
 	}),
 
 	methods: {
+        openServerEditor(server: ProxyServer) {
+            if (this.isSavingServer) return
+            this.editingServerId = server.id
+            this.editingServerName = server.name
+            this.editServerLogin = server.login ?? ""
+            this.editServerPassword = ""
+            this.editServerUseSubdomain = server.useSubDomain === true
+            this.editServerSubdomain = server.subdomain ?? ""
+            this.editServerPort = server.port != null ? String(server.port) : ""
+            this.editServerIp = server.serverIp ?? ""
+            this.serverEditorError = ""
+            this.isServerEditorOpened = true
+        },
+
+        async saveServerSettings() {
+            if (this.isSavingServer || this.editingServerId == null) return
+            const server = this.store.servers.find(it => it.id === this.editingServerId)
+            if (!server) { this.serverEditorError = "Сервер больше не существует"; return }
+            this.isSavingServer = true
+            this.serverEditorError = ""
+            try {
+                await axios.post("/api/v1/edit-server", {
+                    id: server.id, name: server.name, host: server.host,
+                    login: this.editServerLogin.trim(), password: this.editServerPassword,
+                    useSubDomain: this.editServerUseSubdomain,
+                    subdomain: this.editServerUseSubdomain ? this.editServerSubdomain.trim() : null,
+                    port: this.editServerUseSubdomain ? null : Number(this.editServerPort),
+                    serverIp: this.editServerIp.trim() || null,
+                })
+                await this.store.fetchServers()
+                this.editServerPassword = ""
+                this.isServerEditorOpened = false
+            } catch (error) {
+                this.serverEditorError = axios.isAxiosError(error)
+                    ? String(error.response?.data?.message || error.message) : String(error)
+            } finally { this.isSavingServer = false }
+        },
+
 		async createNewUser() {
 			if (!this.newUserName.trim() || this.isCreatingUser) return
 
@@ -451,18 +579,27 @@ export default {
 		async createNewServer() {
 			if (!this.newServerName.trim() || !this.newServerHost.trim() || this.isCreatingServer) return
 
+            this.serverFormError = ""
 			this.isCreatingServer = true
 			try {
 				await axios.post('/api/v1/add-new-server', {
 					name: this.newServerName.trim(),
 					host: this.newServerHost.trim(),
+                    login: this.newServerLogin.trim(), password: this.newServerPassword,
+                    useSubDomain: this.newServerUseSubdomain,
+                    subdomain: this.newServerUseSubdomain ? this.newServerSubdomain.trim() : null,
+                    port: this.newServerUseSubdomain ? null : Number(this.newServerPort),
+                    serverIp: this.newServerUseIp ? this.newServerIp.trim() : null,
 				})
 				await this.store.fetchServers()
 				this.newServerName = ""
 				this.newServerHost = ""
+                this.newServerLogin = ""; this.newServerPassword = ""
+                this.newServerSubdomain = ""; this.newServerPort = ""; this.newServerIp = ""
 				this.isNewServerDialogOpened = false
 			} catch (error) {
-				console.error("Не удалось создать сервер", error)
+                this.serverFormError = axios.isAxiosError(error)
+                    ? String(error.response?.data?.message || error.message) : String(error)
 			} finally {
 				this.isCreatingServer = false
 			}
@@ -471,26 +608,27 @@ export default {
 		async createNewProtocol() {
 			if (!this.protocolServer || !this.protocolType || this.isCreatingProtocol) return
 
-			const server = this.store.servers.find(it => it.name === this.protocolServer)
+			const server = this.store.servers.find(it => String(it.id) === this.protocolServer)
 			if (!server) return
 
+            if (!this.availableProtocolTypes.some(it => it.name === this.protocolType)) return
+            this.protocolFormError = ""
 			this.isCreatingProtocol = true
 			try {
-				await axios.post(`/api/v1/add-proxy-to/${server.id}`, {
-					useSubDomain: this.isSubdomain,
-					subdomain: this.protocolSubdomain,
-					...(!this.isSubdomain && this.protocolPort ? {port: Number(this.protocolPort)} : {}),
-					login: this.protocolLogin,
-					password: this.protocolPassword,
-					type: this.protocolType,
-					...(this.proxyPort ? {proxyPort: Number(this.proxyPort)} : {}),
-					serverIp: this.useServerIp ? this.serverIp : null,
-				})
+                const payload = this.protocolType === "SSH" ? {
+                    type: this.protocolType, login: this.protocolLogin, password: this.protocolPassword,
+                    port: Number(this.protocolPort), proxyPort: Number(this.proxyPort || this.protocolPort),
+                    serverIp: this.useServerIp ? this.serverIp : null,
+                } : {type: this.protocolType}
+                await axios.post(`/api/v1/add-proxy-to/${server.id}`, payload)
+
 				await this.store.fetchServers()
 				this.resetProtocolForm()
 				this.isNewProtocolDialogOpened = false
 			} catch (error) {
-				console.error("Не удалось создать протокол", error)
+                this.protocolFormError = axios.isAxiosError(error)
+                    ? String(error.response?.data?.message || error.message) : String(error)
+                if (axios.isAxiosError(error) && error.response?.status === 409) await this.store.fetchServers()
 			} finally {
 				this.isCreatingProtocol = false
 			}
@@ -610,6 +748,13 @@ export default {
 	},
 
 	computed: {
+        availableProtocolTypes(): ProxyTypeValue[] {
+            const server = this.store.servers.find(it => String(it.id) === this.protocolServer)
+            if (!server) return []
+            const existing = new Set((server.proxies ?? []).map(it => it.type?.name))
+            if (existing.has("TROJAN2")) existing.add("TROJAN")
+            return this.protocolTypes.filter(it => !existing.has(it.name))
+        },
 		bulkServerObject() {
 			return this.store.servers.find(it => it.name === this.bulkServer) ?? null
 		},
@@ -628,6 +773,10 @@ export default {
 	},
 
 	watch: {
+        isServerEditorOpened(open: boolean) { if (!open) this.editServerPassword = "" },
+        isNewServerDialogOpened() { this.serverFormError = "" },
+        isNewProtocolDialogOpened() { this.protocolFormError = "" },
+        protocolServer() { this.protocolType = ""; this.protocolFormError = "" },
 		bulkServer() {
 			// Protocols differ per server: drop a selection the new server does not have.
 			if (!this.bulkTypeOptions.includes(this.bulkType)) {

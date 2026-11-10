@@ -10,6 +10,7 @@ export class UserProxy {
 	type?: string | null
 	tag?: string | null
 	server?: string | null
+	peers?: Array<{address?: string | null}> | null
 	server_port?: number | null
 	uuid?: string | null
 	packet_encoding?: string | null
