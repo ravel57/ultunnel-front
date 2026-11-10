@@ -11,6 +11,8 @@ export class ProxyServer {
     subdomain?: string | null;
     port?: number | null;
     serverIp?: string | null;
+    certificateFile?: string | null;
+    privateKeyFile?: string | null;
 
     constructor(id: number, name: string, host: string, proxies: ProxyProtocol[]) {
         this.id = id;

@@ -131,6 +131,16 @@
 					<q-input dense outlined v-model="newServerIp"/>
 				</div>
 
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Путь к сертификату (fullchain.pem)</span>
+                    <q-input dense outlined v-model="newServerCertificateFile" placeholder="/etc/letsencrypt/live/example.com/fullchain.pem"/>
+                </div>
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Путь к закрытому ключу (privkey.pem)</span>
+                    <q-input dense outlined v-model="newServerPrivateKeyFile" placeholder="/etc/letsencrypt/live/example.com/privkey.pem"/>
+                </div>
+                <div>Пути на выбранном сервере. Если оба поля пустые, используются сертификаты панели.</div>
+
 			</div>
             <div v-if="serverFormError" class="text-negative" role="alert">{{ serverFormError }}</div>
 			<q-btn
@@ -396,6 +406,16 @@
                     <span class="label-for-new-user-creation">IP сервера</span>
                     <q-input dense outlined v-model="editServerIp" placeholder="Пусто — использовать Host сервера" :disable="isSavingServer"/>
                 </div>
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Путь к сертификату (fullchain.pem)</span>
+                    <q-input dense outlined v-model="editServerCertificateFile" placeholder="/etc/letsencrypt/live/example.com/fullchain.pem" :disable="isSavingServer"/>
+                </div>
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Путь к закрытому ключу (privkey.pem)</span>
+                    <q-input dense outlined v-model="editServerPrivateKeyFile" placeholder="/etc/letsencrypt/live/example.com/privkey.pem" :disable="isSavingServer"/>
+                </div>
+                <div>Пути на выбранном сервере. Если оба поля пустые, используются сертификаты панели.</div>
+
             </div>
             <div v-if="serverEditorError" class="text-negative" role="alert">{{ serverEditorError }}</div>
             <q-btn class="new-user-modal-create-btn" label="Сохранить" :loading="isSavingServer"
@@ -438,6 +458,8 @@ export default {
         editServerSubdomain: "",
         editServerPort: "",
         editServerIp: "",
+        editServerCertificateFile: "",
+        editServerPrivateKeyFile: "",
         serverEditorError: "",
 		isNewServerDialogOpened: false,
 		newServerName: "",
@@ -449,6 +471,8 @@ export default {
         newServerPort: "",
         newServerUseIp: false,
         newServerIp: "",
+        newServerCertificateFile: "",
+        newServerPrivateKeyFile: "",
         serverFormError: "",
         protocolFormError: "",
 		isCreatingServer: false,
@@ -503,6 +527,8 @@ export default {
             this.editServerSubdomain = server.subdomain ?? ""
             this.editServerPort = server.port != null ? String(server.port) : ""
             this.editServerIp = server.serverIp ?? ""
+            this.editServerCertificateFile = server.certificateFile ?? ""
+            this.editServerPrivateKeyFile = server.privateKeyFile ?? ""
             this.serverEditorError = ""
             this.isServerEditorOpened = true
         },
@@ -521,6 +547,8 @@ export default {
                     subdomain: this.editServerUseSubdomain ? this.editServerSubdomain.trim() : null,
                     port: this.editServerUseSubdomain ? null : Number(this.editServerPort),
                     serverIp: this.editServerIp.trim() || null,
+                    certificateFile: this.editServerCertificateFile.trim() || null,
+                    privateKeyFile: this.editServerPrivateKeyFile.trim() || null,
                 })
                 await this.store.fetchServers()
                 this.editServerPassword = ""
@@ -590,12 +618,15 @@ export default {
                     subdomain: this.newServerUseSubdomain ? this.newServerSubdomain.trim() : null,
                     port: this.newServerUseSubdomain ? null : Number(this.newServerPort),
                     serverIp: this.newServerUseIp ? this.newServerIp.trim() : null,
+                    certificateFile: this.newServerCertificateFile.trim() || null,
+                    privateKeyFile: this.newServerPrivateKeyFile.trim() || null,
 				})
 				await this.store.fetchServers()
 				this.newServerName = ""
 				this.newServerHost = ""
                 this.newServerLogin = ""; this.newServerPassword = ""
                 this.newServerSubdomain = ""; this.newServerPort = ""; this.newServerIp = ""
+                this.newServerCertificateFile = ""; this.newServerPrivateKeyFile = ""
 				this.isNewServerDialogOpened = false
 			} catch (error) {
                 this.serverFormError = axios.isAxiosError(error)
