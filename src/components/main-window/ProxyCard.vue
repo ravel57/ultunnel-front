@@ -64,6 +64,8 @@
 		</div>
 	</div>
 
+    <q-banner v-if="removalError" class="bg-red-1 text-negative" role="alert">{{ removalError }}</q-banner>
+
 	<q-dialog v-model="isQrModalVisible">
 		<q-card class="qr-modal-card">
 			<q-icon
@@ -86,6 +88,7 @@
 
 <script lang="ts">
 import {defineComponent, PropType} from "vue";
+import {useStore} from "../../store";
 import axios from "axios";
 
 import {ProxyProtocol} from "../../models/ProxyProtocol";
@@ -117,6 +120,7 @@ export default defineComponent({
 			isQrModalVisible: false,
 			isAdding: false,
 			isRemoving: false,
+            removalError: "",
 		};
 	},
 
@@ -247,11 +251,14 @@ export default defineComponent({
 			const matched = this.matchedUserProxy;
 			if (!matched) return;
 
-			if (!window.confirm(`Удалить ${this.protocol.type.name} у пользователя «${this.user.name}»?`)) {
+			if (!window.confirm(this.protocol.type.name === "SSH"
+                ? `Удалить SSH у пользователя «${this.user.name}»?`
+                : `Удалить ${this.protocol.type.name} у пользователя «${this.user.name}»? Учётная запись клиента, трафик и все её привязки будут удалены из серверной панели.`)) {
 				return;
 			}
 
 			this.isRemoving = true;
+            this.removalError = "";
 			try {
 				await deleteProtocolFromUser(
 					this.user.id,
@@ -260,14 +267,10 @@ export default defineComponent({
 					matched.id,
 				);
 
-				const index = (this.user.proxiesConfigs ?? []).findIndex(
-					(userProxy: UserProxy) => userProxy === matched,
-				);
-				if (index >= 0) {
-					this.user.proxiesConfigs.splice(index, 1);
-				}
+                await useStore().fetchUsers();
 			} catch (error) {
-				console.error("Не удалось удалить прокси у пользователя", error);
+                this.removalError = axios.isAxiosError(error)
+                    ? String(error.response?.data?.message || error.message) : String(error);
 			} finally {
 				this.isRemoving = false;
 			}

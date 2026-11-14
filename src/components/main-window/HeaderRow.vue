@@ -294,6 +294,9 @@
 				Протокол {{ this.bulkType || "—" }} будет удалён у всех пользователей сервера
 				{{ this.bulkServer || "—" }}. Действие необратимо.
 			</div>
+            <div v-if="bulkType !== 'SSH'" class="bulk-confirm-text">
+                Учётные записи клиентов, их трафик и все привязки будут полностью удалены из серверной панели.
+            </div>
 			<q-btn
 				class="bulk-delete-btn"
 				:loading="this.bulkLoading"
