@@ -95,3 +95,13 @@ export async function deleteProtocolFromUser(
 
 	await requestFirstSupported(attempts);
 }
+
+/**
+ * Issues the user a new secret key. The same key authenticates the configuration
+ * download and control.ultunnel.ru, so every device of that user has to be given
+ * the new one.
+ */
+export async function regenerateSecretKey(userId: number): Promise<string> {
+	const {data} = await axios.post(`/api/v1/regenerate-secret-key/${userId}`);
+	return String(data?.secretKey ?? "");
+}

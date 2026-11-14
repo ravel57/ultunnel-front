@@ -46,15 +46,29 @@
 			<span class="user-info-text">{{ formatDate(user.nextPaymentDate) }}</span>
 			<q-icon class="skip-to-next-year" name="skip_next" size="24px"/>
 		</div>
-		<div @click="copySecretKey(user)" class="user-info-section-secret-key">
+		<div class="user-info-section-secret-key">
 			<img
 				src="../../../public/svg/key.svg"
 				alt=""
 				width="20px"
 				height="20px"
 			>
-			<span class="user-info-text">{{ user.secretKey }}</span>
-			<q-icon class="copy-secret-key-btn" name="content_copy" size="20px"/>
+			<span class="user-info-text" @click="copySecretKey(user)">{{ user.secretKey }}</span>
+			<q-icon
+				class="copy-secret-key-btn"
+				name="content_copy"
+				size="20px"
+				@click="copySecretKey(user)"
+			/>
+			<q-icon
+				class="copy-secret-key-btn"
+				name="autorenew"
+				size="20px"
+				:class="{ rotating: isRotatingKey }"
+				@click="rotateSecretKey"
+			>
+				<q-tooltip>Выдать новый ключ</q-tooltip>
+			</q-icon>
 		</div>
 	</div>
 	<div v-for="server in servers" :key="server.id">
@@ -71,7 +85,7 @@ import ProxyServerView from "./ProxyServerView.vue";
 import {ProxyServer} from "../../models/ProxyServer";
 import {User} from "../../models/User";
 import {PropType} from "vue";
-import {setUserEnabled} from "../../api/adminApi";
+import {regenerateSecretKey, setUserEnabled} from "../../api/adminApi";
 
 export default {
 	name: "UserView",
@@ -80,6 +94,7 @@ export default {
 
 	data: () => ({
 		isToggling: false,
+		isRotatingKey: false,
 	}),
 
 	props: {
@@ -132,6 +147,27 @@ export default {
 				console.error("Не удалось скопировать секретный ключ", error)
 			}
 		},
+
+		async rotateSecretKey(): Promise<void> {
+			if (this.isRotatingKey) return
+			const confirmed = window.confirm(
+				`Выдать пользователю «${this.user.name}» новый secret key?\n` +
+				"Старый перестанет работать: и для скачивания конфигурации, и для control.ultunnel.ru."
+			)
+			if (!confirmed) return
+
+			this.isRotatingKey = true
+			try {
+				const key = await regenerateSecretKey(this.user.id)
+				if (key) {
+					this.user.secretKey = key
+				}
+			} catch (error) {
+				console.error("Не удалось выдать новый секретный ключ", error)
+			} finally {
+				this.isRotatingKey = false
+			}
+		},
 	},
 }
 </script>
@@ -169,6 +205,7 @@ export default {
 .user-info-section-secret-key {
 	display: flex;
 	flex-direction: row;
+	align-items: center;
 	gap: 8px;
 	cursor: pointer;
 }
@@ -199,6 +236,16 @@ export default {
 
 .copy-secret-key-btn {
 	display: none;
+	cursor: pointer;
+}
+
+.copy-secret-key-btn.rotating {
+	display: unset;
+	animation: secret-key-spin 1s linear infinite;
+}
+
+@keyframes secret-key-spin {
+	to { transform: rotate(360deg); }
 }
 
 .user-info {
