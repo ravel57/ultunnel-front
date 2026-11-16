@@ -105,3 +105,23 @@ export async function regenerateSecretKey(userId: number): Promise<string> {
 	const {data} = await axios.post(`/api/v1/regenerate-secret-key/${userId}`);
 	return String(data?.secretKey ?? "");
 }
+
+export interface ServerIpChangeResult {
+	serverId: number | null;
+	previousAddress: string | null;
+	currentAddress: string;
+	serverIp: string | null;
+	updatedProtocols: number;
+	updatedConfigs: number;
+	affectedUsers: number;
+}
+
+/**
+ * Moves the server to another IP. The backend rewrites that address in every link,
+ * sing-box config and tunnel config already issued to users, so nothing has to be
+ * re-created by hand. An empty serverIp puts the server's host back into the links.
+ */
+export async function changeServerIp(serverId: number, serverIp: string | null): Promise<ServerIpChangeResult> {
+	const {data} = await axios.post<ServerIpChangeResult>("/api/v1/change-server-ip", {serverId, serverIp});
+	return data;
+}

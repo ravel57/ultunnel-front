@@ -132,6 +132,11 @@
 				</div>
 
                 <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Адрес панели для замера скорости</span>
+                    <q-input dense outlined v-model="newServerSpeedtestBaseUrl" placeholder="https://panel.example.com/sub"/>
+                    <small>Адрес сервера подписок с его путём, без ID подписки. Необязательно.</small>
+                </div>
+                <div class="input-new-user-container">
                     <span class="label-for-new-user-creation">Путь к сертификату (fullchain.pem)</span>
                     <q-input dense outlined v-model="newServerCertificateFile" placeholder="/etc/letsencrypt/live/example.com/fullchain.pem"/>
                 </div>
@@ -339,6 +344,11 @@
                             @click="openServerEditor(server)">
                             <q-tooltip>Параметры сервера</q-tooltip>
                         </q-btn>
+                        <q-btn flat round dense icon="swap_horiz" aria-label="Сменить IP сервера"
+                            :disable="deletingServerId !== null || deletingProtocolId !== null || isChangingServerIp"
+                            @click="openServerIpDialog(server)">
+                            <q-tooltip>Сменить IP сервера</q-tooltip>
+                        </q-btn>
 						<q-btn
 							flat
 							round
@@ -408,6 +418,12 @@
                 <div class="input-new-user-container">
                     <span class="label-for-new-user-creation">IP сервера</span>
                     <q-input dense outlined v-model="editServerIp" placeholder="Пусто — использовать Host сервера" :disable="isSavingServer"/>
+                    <small>Новый адрес будет переписан во всех выданных пользователям ссылках и конфигах.</small>
+                </div>
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Адрес панели для замера скорости</span>
+                    <q-input dense outlined v-model="editServerSpeedtestBaseUrl" placeholder="https://panel.example.com/sub" :disable="isSavingServer"/>
+                    <small>Адрес сервера подписок с его путём, без ID подписки. Необязательно.</small>
                 </div>
                 <div class="input-new-user-container">
                     <span class="label-for-new-user-creation">Путь к сертификату (fullchain.pem)</span>
@@ -428,6 +444,40 @@
         </q-card>
     </q-dialog>
 
+    <q-dialog v-model="isServerIpDialogOpened" :persistent="isChangingServerIp">
+        <q-card class="new-user-modal-card">
+            <div class="new-user-header">Смена IP сервера</div>
+            <div>{{ serverIpServerName }}</div>
+            <div class="new-user-inputs">
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Текущий адрес в ссылках</span>
+                    <q-input dense outlined :model-value="serverIpCurrentAddress" readonly/>
+                </div>
+                <div class="input-new-user-container">
+                    <span class="label-for-new-user-creation">Новый IP сервера</span>
+                    <q-input dense outlined v-model="newServerIpValue" autofocus
+                        placeholder="Пусто — использовать Host сервера" :disable="isChangingServerIp"/>
+                </div>
+                <div>
+                    Адрес заменится у сервера, у всех его протоколов и во всех уже выданных
+                    пользователям ссылках, sing-box конфигах и туннельных конфигах.
+                    Пользователям нужно будет заново скачать конфигурацию.
+                </div>
+                <div v-if="serverIpResult" class="bulk-result">
+                    <div>Было: {{ serverIpResult.previousAddress || "—" }} → стало: {{ serverIpResult.currentAddress }}</div>
+                    <div>Протоколов обновлено: {{ serverIpResult.updatedProtocols }}</div>
+                    <div>Конфигов переписано: {{ serverIpResult.updatedConfigs }}</div>
+                    <div>Затронуто пользователей: {{ serverIpResult.affectedUsers }}</div>
+                </div>
+            </div>
+            <div v-if="serverIpError" class="text-negative" role="alert">{{ serverIpError }}</div>
+            <q-btn class="new-user-modal-create-btn" label="Сменить IP" :loading="isChangingServerIp"
+                :disable="newServerIpValue.trim() === serverIpInitialValue"
+                @click="applyServerIpChange"/>
+            <q-btn flat label="Закрыть" :disable="isChangingServerIp" @click="isServerIpDialogOpened = false"/>
+        </q-card>
+    </q-dialog>
+
 </template>
 
 <script lang="ts">
@@ -438,7 +488,8 @@ import {ProxyType} from "../../models/ProxyType";
 import type {ProxyTypeValue} from "../../models/ProxyTypeValue";
 import {ProxyServer} from "../../models/ProxyServer";
 import {ProxyProtocol} from "../../models/ProxyProtocol";
-import {deleteProtocol, deleteServer} from "../../api/adminApi";
+import {changeServerIp, deleteProtocol, deleteServer} from "../../api/adminApi";
+import type {ServerIpChangeResult} from "../../api/adminApi";
 import {User} from "../../models/User";
 
 export default {
@@ -453,6 +504,15 @@ export default {
 
         isServerEditorOpened: false,
         isSavingServer: false,
+        isServerIpDialogOpened: false,
+        isChangingServerIp: false,
+        serverIpServerId: null as number | null,
+        serverIpServerName: "",
+        serverIpCurrentAddress: "",
+        serverIpInitialValue: "",
+        newServerIpValue: "",
+        serverIpResult: null as ServerIpChangeResult | null,
+        serverIpError: "",
         editingServerId: null as number | null,
         editingServerName: "",
         editServerLogin: "",
@@ -463,6 +523,7 @@ export default {
         editServerIp: "",
         editServerCertificateFile: "",
         editServerPrivateKeyFile: "",
+        editServerSpeedtestBaseUrl: "",
         serverEditorError: "",
 		isNewServerDialogOpened: false,
 		newServerName: "",
@@ -476,6 +537,7 @@ export default {
         newServerIp: "",
         newServerCertificateFile: "",
         newServerPrivateKeyFile: "",
+        newServerSpeedtestBaseUrl: "",
         serverFormError: "",
         protocolFormError: "",
 		isCreatingServer: false,
@@ -520,6 +582,36 @@ export default {
 	}),
 
 	methods: {
+        openServerIpDialog(server: ProxyServer) {
+            if (this.isChangingServerIp) return
+            this.serverIpServerId = server.id
+            this.serverIpServerName = server.name
+            this.serverIpInitialValue = (server.serverIp ?? "").trim()
+            this.serverIpCurrentAddress = this.serverIpInitialValue || server.host
+            this.newServerIpValue = this.serverIpInitialValue
+            this.serverIpResult = null
+            this.serverIpError = ""
+            this.isServerIpDialogOpened = true
+        },
+
+        async applyServerIpChange() {
+            if (this.isChangingServerIp || this.serverIpServerId == null) return
+            this.isChangingServerIp = true
+            this.serverIpError = ""
+            try {
+                const result = await changeServerIp(this.serverIpServerId, this.newServerIpValue.trim() || null)
+                this.serverIpResult = result
+                this.serverIpInitialValue = result.serverIp ?? ""
+                this.newServerIpValue = this.serverIpInitialValue
+                this.serverIpCurrentAddress = result.currentAddress
+                // Every user card renders the address out of its config: reload servers and users.
+                await this.store.fetchData()
+            } catch (error) {
+                this.serverIpError = axios.isAxiosError(error)
+                    ? String(error.response?.data?.message || error.message) : String(error)
+            } finally { this.isChangingServerIp = false }
+        },
+
         openServerEditor(server: ProxyServer) {
             if (this.isSavingServer) return
             this.editingServerId = server.id
@@ -532,6 +624,7 @@ export default {
             this.editServerIp = server.serverIp ?? ""
             this.editServerCertificateFile = server.certificateFile ?? ""
             this.editServerPrivateKeyFile = server.privateKeyFile ?? ""
+            this.editServerSpeedtestBaseUrl = server.speedtestBaseUrl ?? ""
             this.serverEditorError = ""
             this.isServerEditorOpened = true
         },
@@ -552,6 +645,7 @@ export default {
                     serverIp: this.editServerIp.trim() || null,
                     certificateFile: this.editServerCertificateFile.trim() || null,
                     privateKeyFile: this.editServerPrivateKeyFile.trim() || null,
+                    speedtestBaseUrl: this.editServerSpeedtestBaseUrl.trim() || null,
                 })
                 await this.store.fetchServers()
                 this.editServerPassword = ""
@@ -623,6 +717,7 @@ export default {
                     serverIp: this.newServerUseIp ? this.newServerIp.trim() : null,
                     certificateFile: this.newServerCertificateFile.trim() || null,
                     privateKeyFile: this.newServerPrivateKeyFile.trim() || null,
+                    speedtestBaseUrl: this.newServerSpeedtestBaseUrl.trim() || null,
 				})
 				await this.store.fetchServers()
 				this.newServerName = ""
@@ -630,6 +725,7 @@ export default {
                 this.newServerLogin = ""; this.newServerPassword = ""
                 this.newServerSubdomain = ""; this.newServerPort = ""; this.newServerIp = ""
                 this.newServerCertificateFile = ""; this.newServerPrivateKeyFile = ""
+                this.newServerSpeedtestBaseUrl = ""
 				this.isNewServerDialogOpened = false
 			} catch (error) {
                 this.serverFormError = axios.isAxiosError(error)

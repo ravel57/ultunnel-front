@@ -13,6 +13,7 @@ export class ProxyServer {
     serverIp?: string | null;
     certificateFile?: string | null;
     privateKeyFile?: string | null;
+    speedtestBaseUrl?: string | null;
 
     constructor(id: number, name: string, host: string, proxies: ProxyProtocol[]) {
         this.id = id;
